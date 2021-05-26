@@ -1,2 +1,3 @@
-# cork
-App
+# Cork
+
+Test App for learning purposes
