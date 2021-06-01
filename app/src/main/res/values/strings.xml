@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Cork</string>
+    <string name="identify">Identifica\'t!</string>
+    <string name="nif">NIF (sense lletra)</string>
+    <string name="laintersindical">La Intersindical</string>
+    <string name="login">Entrar!</string>
+    <string name="visited">Marca el centre com a visitat!</string>
+    <string name="noschool">No trobo cap escola</string>
+    <string name="welcome">Benvingut!</string>
+    <string name="invalidlogin">Número d\'identifiació incorrecte!</string>
+</resources>
