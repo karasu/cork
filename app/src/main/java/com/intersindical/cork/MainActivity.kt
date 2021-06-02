@@ -35,7 +35,9 @@ class MainActivity : AppCompatActivity() {
     private var centres : List<Centre> = emptyList()
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-    val LOCATION_PERMISSION_ID = 42
+    private val LOCATION_PERMISSION_ID = 42
+    private val EPSILON = 0.15
+    private lateinit var centre : Centre
 
     private var nis : List<Nis> = listOf(
         Nis("46693925", "GONZALO ALCARAZ RUIZ"),
@@ -77,6 +79,11 @@ class MainActivity : AppCompatActivity() {
         school.visibility = View.INVISIBLE
         visitButton.visibility = View.INVISIBLE
         loadCentresButton.visibility = View.INVISIBLE
+        searchSchoolButton.visibility = View.INVISIBLE
+
+        //identificat.visibility = View.INVISIBLE
+        //nif.visibility = View.INVISIBLE
+        //loginButton.visibility = View.INVISIBLE
 
         loadCentres()
 
@@ -87,20 +94,12 @@ class MainActivity : AppCompatActivity() {
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        getLastLocation()
-
         loadCentresButton.setOnClickListener {
             loadCentres()
         }
 
         searchSchoolButton.setOnClickListener {
-            if (!isOnline()) {
-                Toast.makeText(this@MainActivity, "Sense connexió!", Toast.LENGTH_LONG)
-                    .show()
-            }
-            else {
-                getLastLocation()
-            }
+            getLastLocation()
         }
 
         loginButton.setOnClickListener {
@@ -109,24 +108,29 @@ class MainActivity : AppCompatActivity() {
                     .show()
             }
             else {
-
                 if (checkLogin(nif.text.toString())) {
                     // Login ok
-                    Toast.makeText(this@MainActivity, R.string.welcome, Toast.LENGTH_SHORT)
-                        .show()
                     loginButton.visibility = View.INVISIBLE
                     identificat.visibility = View.INVISIBLE
                     nif.visibility = View.INVISIBLE
 
                     school.visibility = View.VISIBLE
                     visitButton.visibility = View.VISIBLE
+                    searchSchoolButton.visibility = View.VISIBLE
+
                     // loadCentresButton.visibility = View.VISIBLE
+                    getLastLocation()
+
                 } else {
                     Toast.makeText(this@MainActivity, R.string.invalidlogin, Toast.LENGTH_SHORT)
                         .show()
                 }
             }
         }
+
+        //visitButton.setOnClickListener {
+
+        //}
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -141,12 +145,11 @@ class MainActivity : AppCompatActivity() {
                     if (location == null) {
                         requestNewLocationData()
                     } else {
-                        //findViewById<TextView>(R.id.latTextView).text = location.latitude.toString()
-                        //findViewById<TextView>(R.id.lonTextView).text = location.longitude.toString()
                         Toast.makeText(
                             this@MainActivity,
                             location.latitude.toString() + ", " + location.longitude.toString(),
                             Toast.LENGTH_SHORT).show()
+                        updateCentre(location.latitude, location.longitude)
                     }
                 }
             } else {
@@ -178,12 +181,11 @@ class MainActivity : AppCompatActivity() {
         override fun onLocationResult(locationResult: LocationResult) {
             var lastLocation: Location = locationResult.lastLocation
 
-            //findViewById<TextView>(R.id.latTextView).text = mLastLocation.latitude.toString()
-            //findViewById<TextView>(R.id.lonTextView).text = mLastLocation.longitude.toString()
             Toast.makeText(
                 this@MainActivity,
                 lastLocation.latitude.toString() + ", " + lastLocation.longitude.toString(),
                 Toast.LENGTH_SHORT).show()
+            updateCentre(lastLocation.latitude, lastLocation.longitude)
         }
     }
 
@@ -280,6 +282,37 @@ class MainActivity : AppCompatActivity() {
         }
         return false
     }
+
+    fun iguals(a: Double, b: Double) : Boolean {
+        if (a == b) return true
+        else return false
+        //return Math.abs(a - b) < EPSILON
+    }
+
+    fun updateCentre(latitude : Double, longitude : Double) : Boolean {
+        for (item in centres) {
+            if (item.Coordenades_GEO_X != null &&
+                    item.Coordenades_GEO_Y != null) {
+                if (iguals(latitude, item.Coordenades_GEO_Y!!) &&
+                    iguals(longitude, item.Coordenades_GEO_X!!)
+                ) {
+                    centre = item
+                    school.text = item.Nom
+                    Toast.makeText(
+                        this@MainActivity,
+                        item.Nom,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return true
+                }
+            }
+        }
+        Toast.makeText(
+            this@MainActivity,
+            "No s'ha trobat cap centre!",
+            Toast.LENGTH_SHORT).show()
+        return false
+    }
 }
 
 
@@ -288,8 +321,8 @@ data class Centre(
     var Nom : String?=null,
     var Nom_comarca : String?=null,
     var Nom_municipi : String?=null,
-    var Coordenades_GEO_X : Float?=null,
-    var Coordenades_GEO_Y : Float?=null,
+    var Coordenades_GEO_X : Double?=null,
+    var Coordenades_GEO_Y : Double?=null,
     @SerializedName("E-mail_centre")
     var email : String?=null)
 
