@@ -8,4 +8,5 @@
     <string name="noschool">No trobo cap escola</string>
     <string name="welcome">Benvingut!</string>
     <string name="invalidlogin">Número d\'identifiació incorrecte!</string>
+    <string name="loadcentres">Actualitza la base de dades dels centres</string>
 </resources>

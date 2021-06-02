@@ -9,12 +9,14 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.google.gson.annotations.SerializedName
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.*
 
 class MainActivity : AppCompatActivity() {
     private var myDownLoadId: Long = -1
+    private var centres : List<Centre> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,20 +24,16 @@ class MainActivity : AppCompatActivity() {
 
         school.visibility = View.INVISIBLE
         visitButton.visibility = View.INVISIBLE
+        loadCentresButton.visibility = View.INVISIBLE
 
-        Toast.makeText(this@MainActivity, "Carregant centres...", Toast.LENGTH_LONG).show()
-        runBlocking {
-            launch {
-                val jsontext = resources.openRawResource(R.raw.centres_educatius)
-                    .bufferedReader().use { it.readText() }
-                val centres = Gson().fromJson(jsontext, Centre::class.java)
-            }
-        }
-
-
+        loadCentres()
 
         if (!isOnline()) {
             Toast.makeText(this@MainActivity, "Sense connexió!", Toast.LENGTH_LONG).show()
+        }
+
+        loadCentresButton.setOnClickListener {
+            loadCentres()
         }
 
         loginButton.setOnClickListener {
@@ -50,8 +48,10 @@ class MainActivity : AppCompatActivity() {
                     loginButton.visibility = View.INVISIBLE
                     identificat.visibility = View.INVISIBLE
                     nif.visibility = View.INVISIBLE
+
                     school.visibility = View.VISIBLE
                     visitButton.visibility = View.VISIBLE
+                    // loadCentresButton.visibility = View.VISIBLE
                 } else {
                     Toast.makeText(this@MainActivity, R.string.invalidlogin, Toast.LENGTH_SHORT)
                         .show()
@@ -60,7 +60,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun isOnline(): Boolean {
+    private fun loadCentres() {
+        Toast.makeText(this@MainActivity, "Carregant centres...", Toast.LENGTH_LONG).show()
+        val arrayCentreType = object : TypeToken<List<Centre>>() {}.type
+        runBlocking {
+            launch {
+                val jsontext = resources.openRawResource(R.raw.centres_educatius)
+                    .bufferedReader().use { it.readText() }
+                centres = Gson().fromJson(jsontext, arrayCentreType)
+            }
+        }
+    }
+
+    private fun isOnline(): Boolean {
         val connectivityManager =
             getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
