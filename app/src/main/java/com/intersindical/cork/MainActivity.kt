@@ -16,9 +16,13 @@ import android.provider.Settings
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.*
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ktx.database
 //import com.google.android.gms.common.GoogleApiAvailability
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -26,6 +30,9 @@ import com.google.gson.annotations.SerializedName
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.*
 import kotlin.math.*
+
+import com.google.firebase.ktx.Firebase
+
 
 data class Nis (
     var ni : String,
@@ -39,6 +46,11 @@ class MainActivity : AppCompatActivity() {
     private val LOCATION_PERMISSION_ID = 42
     private val EPSILON = 100
     private lateinit var centre : Centre
+
+    // private lateinit var database: DatabaseReference
+    private lateinit var database: FirebaseDatabase
+
+    private lateinit var currentNIF: String
 
     private var nis : List<Nis> = listOf(
         Nis("46693925", "GONZALO ALCARAZ RUIZ"),
@@ -73,6 +85,7 @@ class MainActivity : AppCompatActivity() {
     )
 
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -111,6 +124,7 @@ class MainActivity : AppCompatActivity() {
             else {
                 if (checkLogin(nif.text.toString())) {
                     // Login ok
+                    currentNIF = nif.text.toString()
                     loginButton.visibility = View.INVISIBLE
                     identificat.visibility = View.INVISIBLE
                     nif.visibility = View.INVISIBLE
@@ -129,9 +143,21 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        //visitButton.setOnClickListener {
+        var url = "https://cork-86201-default-rtdb.europe-west1.firebasedatabase.app"
+        database = FirebaseDatabase.getInstance(url)
 
-        //}
+        visitButton.setOnClickListener {
+            var currentTime = java.util.Calendar.getInstance()
+            centre.visitTime = currentTime.toString()
+            centre.currentNIF = currentNIF
+            database.getReference("centres").child(centre.Codi!!).setValue(centre)
+
+            Toast.makeText(
+                this@MainActivity,
+                "Centre " + centre.Nom + " marcat com a visitat!",
+                Toast.LENGTH_LONG).show()
+        }
+
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -231,29 +257,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-    /*
-    dlon = lon2 - lon1
-dlat = lat2 - lat1
-a = sin^2(dlat/2) + cos(lat1) * cos(lat2) * sin^2(dlon/2)
-c = 2 * arcsin(min(1,sqrt(a)))
-d = R * c
-
-
-const R = 6371e3; // metres
-const φ1 = lat1 * Math.PI/180; // φ, λ in radians
-const φ2 = lat2 * Math.PI/180;
-const Δφ = (lat2-lat1) * Math.PI/180;
-const Δλ = (lon2-lon1) * Math.PI/180;
-
-const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-          Math.cos(φ1) * Math.cos(φ2) *
-          Math.sin(Δλ/2) * Math.sin(Δλ/2);
-const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-const d = R * c; // in metres
-     */
-
     private fun distance(lat1: Double, lon1: Double, lat2: Double, lon2: Double) : Double {
         val radius = 6371e3; // metres
         val rlat1 = lat1 * PI / 180 // φ1
@@ -325,32 +328,40 @@ const d = R * c; // in metres
         return false
     }
 
-    fun iguals(lat1: Double, lon1: Double, lat2: Double, lon2: Double) : Boolean {
-        // Ens diu la distància en m
-        return distance(lat1, lon1, lat2, lon2) < EPSILON
-    }
-
+    @SuppressLint("SetTextI18n")
     fun updateCentre(latitude : Double, longitude : Double) : Boolean {
+        var mindist = -1.0
+        lateinit var minitem : Centre
+
         for (item in centres) {
             if (item.Coordenades_GEO_X != null &&
-                    item.Coordenades_GEO_Y != null) {
-                if (iguals(latitude, item.Coordenades_GEO_Y!!, longitude, item.Coordenades_GEO_X!!)) {
-                    centre = item
-                    school.text = item.Nom
-                    Toast.makeText(
-                        this@MainActivity,
-                        item.Nom,
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    return true
+                item.Coordenades_GEO_Y != null) {
+                    var dist = distance(
+                        latitude, longitude,
+                        item.Coordenades_GEO_Y!!, item.Coordenades_GEO_X!!)
+                if (dist < mindist || mindist < 0) {
+                    mindist = dist
+                    minitem = item
                 }
             }
         }
-        Toast.makeText(
-            this@MainActivity,
-            "No s'ha trobat cap centre!",
-            Toast.LENGTH_SHORT).show()
-        return false
+        if (mindist >= 0) {
+            centre = minitem
+            school.text = minitem.Nom + " (" + mindist.toInt() + "m)"
+            Toast.makeText(
+                this@MainActivity,
+                minitem.Nom,
+                Toast.LENGTH_SHORT
+            ).show()
+            return true
+        } else {
+            Toast.makeText(
+                this@MainActivity,
+                "No s'ha trobat cap centre!",
+                Toast.LENGTH_SHORT
+            ).show()
+            return false
+        }
     }
 }
 
@@ -363,7 +374,9 @@ data class Centre(
     var Coordenades_GEO_X : Double?=null,
     var Coordenades_GEO_Y : Double?=null,
     @SerializedName("E-mail_centre")
-    var email : String?=null)
+    var email : String?=null,
+    var visitTime : String,
+    var currentNIF : String)
 
 
 /*

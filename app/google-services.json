@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "278057016291",
+    "project_id": "cork-86201",
+    "storage_bucket": "cork-86201.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:278057016291:android:5f918d12f2010246611ed6",
+        "android_client_info": {
+          "package_name": "com.intersindical.cork"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "278057016291-6u9u2kq5j3lfb1393p8s9dc89bmiq7ab.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBL5YZdos1ADwdRbFxHI9G83IR50mqHNaA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "278057016291-6u9u2kq5j3lfb1393p8s9dc89bmiq7ab.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
