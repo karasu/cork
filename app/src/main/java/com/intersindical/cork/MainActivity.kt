@@ -25,6 +25,7 @@ import com.google.gson.reflect.TypeToken
 import com.google.gson.annotations.SerializedName
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.*
+import kotlin.math.*
 
 data class Nis (
     var ni : String,
@@ -36,7 +37,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private val LOCATION_PERMISSION_ID = 42
-    private val EPSILON = 0.15
+    private val EPSILON = 100
     private lateinit var centre : Centre
 
     private var nis : List<Nis> = listOf(
@@ -145,15 +146,17 @@ class MainActivity : AppCompatActivity() {
                     if (location == null) {
                         requestNewLocationData()
                     } else {
+                        /*
                         Toast.makeText(
                             this@MainActivity,
                             location.latitude.toString() + ", " + location.longitude.toString(),
                             Toast.LENGTH_SHORT).show()
+                         */
                         updateCentre(location.latitude, location.longitude)
                     }
                 }
             } else {
-                Toast.makeText(this, "Turn on location", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Activa la localització", Toast.LENGTH_LONG).show()
                 val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
                 startActivity(intent)
             }
@@ -180,11 +183,12 @@ class MainActivity : AppCompatActivity() {
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult) {
             var lastLocation: Location = locationResult.lastLocation
-
+            /*
             Toast.makeText(
                 this@MainActivity,
                 lastLocation.latitude.toString() + ", " + lastLocation.longitude.toString(),
                 Toast.LENGTH_SHORT).show()
+            */
             updateCentre(lastLocation.latitude, lastLocation.longitude)
         }
     }
@@ -225,6 +229,44 @@ class MainActivity : AppCompatActivity() {
                 getLastLocation()
             }
         }
+    }
+
+
+    /*
+    dlon = lon2 - lon1
+dlat = lat2 - lat1
+a = sin^2(dlat/2) + cos(lat1) * cos(lat2) * sin^2(dlon/2)
+c = 2 * arcsin(min(1,sqrt(a)))
+d = R * c
+
+
+const R = 6371e3; // metres
+const φ1 = lat1 * Math.PI/180; // φ, λ in radians
+const φ2 = lat2 * Math.PI/180;
+const Δφ = (lat2-lat1) * Math.PI/180;
+const Δλ = (lon2-lon1) * Math.PI/180;
+
+const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+          Math.cos(φ1) * Math.cos(φ2) *
+          Math.sin(Δλ/2) * Math.sin(Δλ/2);
+const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+const d = R * c; // in metres
+     */
+
+    private fun distance(lat1: Double, lon1: Double, lat2: Double, lon2: Double) : Double {
+        val radius = 6371e3; // metres
+        val rlat1 = lat1 * PI / 180 // φ1
+        val rlat2 = lat2 * PI / 180 // φ2
+        val dlat = (lat2 - lat1) * PI / 180 // Δφ
+        val dlon = (lon2 - lon1) * PI / 180 // Δλ
+
+        val a = sin(dlat/2).pow(2) + cos(rlat1) * cos(rlat2) * sin(dlon/2).pow(2)
+        val c = 2 * atan2(sqrt(a), sqrt(1-a))
+
+        val dist = radius * c
+
+        return dist
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -283,19 +325,16 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
-    fun iguals(a: Double, b: Double) : Boolean {
-        if (a == b) return true
-        else return false
-        //return Math.abs(a - b) < EPSILON
+    fun iguals(lat1: Double, lon1: Double, lat2: Double, lon2: Double) : Boolean {
+        // Ens diu la distància en m
+        return distance(lat1, lon1, lat2, lon2) < EPSILON
     }
 
     fun updateCentre(latitude : Double, longitude : Double) : Boolean {
         for (item in centres) {
             if (item.Coordenades_GEO_X != null &&
                     item.Coordenades_GEO_Y != null) {
-                if (iguals(latitude, item.Coordenades_GEO_Y!!) &&
-                    iguals(longitude, item.Coordenades_GEO_X!!)
-                ) {
+                if (iguals(latitude, item.Coordenades_GEO_Y!!, longitude, item.Coordenades_GEO_X!!)) {
                     centre = item
                     school.text = item.Nom
                     Toast.makeText(
