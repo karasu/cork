@@ -1,5 +1,6 @@
 package com.intersindical.cork
 
+//import com.google.android.gms.common.GoogleApiAvailability
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
@@ -14,37 +15,37 @@ import android.os.Bundle
 import android.os.Looper
 import android.provider.Settings
 import android.view.View
-import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.*
-import com.google.firebase.database.DatabaseReference
+//import com.firebase.ui.auth.AuthUI
+//import com.firebase.ui.auth.FirebaseAuthUIActivityResultContract
+//import com.firebase.ui.auth.data.model.FirebaseAuthUIAuthenticationResult
+//import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ktx.database
-//import com.google.android.gms.common.GoogleApiAvailability
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.google.gson.annotations.SerializedName
-import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.coroutines.*
+import com.google.gson.reflect.TypeToken
+import com.intersindical.cork.databinding.ActivityMainBinding
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlin.math.*
-
-import com.google.firebase.ktx.Firebase
-
 
 data class Nis (
     var ni : String,
     var nom : String)
 
 class MainActivity : AppCompatActivity() {
-    private var myDownLoadId: Long = -1
+
     private var centres : List<Centre> = emptyList()
+    private lateinit var binding: ActivityMainBinding
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private val LOCATION_PERMISSION_ID = 42
-    private val EPSILON = 100
+
+    private val locationPermissionId = 42
+
     private lateinit var centre : Centre
 
     // private lateinit var database: DatabaseReference
@@ -84,16 +85,60 @@ class MainActivity : AppCompatActivity() {
         Nis("46629777", "Aina Solà Rodrigo")
     )
 
+    /*
+    private val signInLauncher = registerForActivityResult(
+        FirebaseAuthUIActivityResultContract()
+    ) { res ->
+        this.onSignInResult(res)
+    }
 
+    private fun createSignInIntent() {
+        // [START auth_fui_create_intent]
+        // Choose authentication providers
+        val providers = arrayListOf(
+            AuthUI.IdpConfig.EmailBuilder().build(),
+            AuthUI.IdpConfig.PhoneBuilder().build(),
+            AuthUI.IdpConfig.GoogleBuilder().build(),
+            AuthUI.IdpConfig.FacebookBuilder().build(),
+            AuthUI.IdpConfig.TwitterBuilder().build())
+
+        // Create and launch sign-in intent
+        val signInIntent = AuthUI.getInstance()
+            .createSignInIntentBuilder()
+            .setAvailableProviders(providers)
+            .build()
+        signInLauncher.launch(signInIntent)
+        // [END auth_fui_create_intent]
+    }
+    private fun onSignInResult(result: FirebaseAuthUIAuthenticationResult) {
+        val response = result.idpResponse
+        if (result.resultCode == RESULT_OK) {
+            // Successfully signed in
+            val user = FirebaseAuth.getInstance().currentUser
+            // ...
+        } else {
+            // Sign in failed. If response is null the user canceled the
+            // sign-in flow using the back button. Otherwise check
+            // response.getError().getErrorCode() and handle the error.
+            // ...
+        }
+    }
+
+     */
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
 
-        school.visibility = View.INVISIBLE
-        visitButton.visibility = View.INVISIBLE
-        loadCentresButton.visibility = View.INVISIBLE
-        searchSchoolButton.visibility = View.INVISIBLE
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        val view = binding.root
+        setContentView(view)
+
+        //setContentView(R.layout.activity_main)
+
+        binding.school.visibility = View.INVISIBLE
+        binding.visitButton.visibility = View.INVISIBLE
+        binding.loadCentresButton.visibility = View.INVISIBLE
+        binding.searchSchoolButton.visibility = View.INVISIBLE
 
         //identificat.visibility = View.INVISIBLE
         //nif.visibility = View.INVISIBLE
@@ -108,30 +153,30 @@ class MainActivity : AppCompatActivity() {
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        loadCentresButton.setOnClickListener {
+        binding.loadCentresButton.setOnClickListener {
             loadCentres()
         }
 
-        searchSchoolButton.setOnClickListener {
-            getLastLocation()
+        binding.searchSchoolButton.setOnClickListener {
+            requestNewLocationData()
         }
 
-        loginButton.setOnClickListener {
+        binding.loginButton.setOnClickListener {
             if (!isOnline()) {
                 Toast.makeText(this@MainActivity, "Sense connexió!", Toast.LENGTH_LONG)
                     .show()
             }
             else {
-                if (checkLogin(nif.text.toString())) {
+                if (checkLogin(binding.nif.text.toString())) {
                     // Login ok
-                    currentNIF = nif.text.toString()
-                    loginButton.visibility = View.INVISIBLE
-                    identificat.visibility = View.INVISIBLE
-                    nif.visibility = View.INVISIBLE
+                    currentNIF = binding.nif.text.toString()
+                    binding.loginButton.visibility = View.INVISIBLE
+                    binding.identificat.visibility = View.INVISIBLE
+                    binding.nif.visibility = View.INVISIBLE
 
-                    school.visibility = View.VISIBLE
-                    visitButton.visibility = View.VISIBLE
-                    searchSchoolButton.visibility = View.VISIBLE
+                    binding.school.visibility = View.VISIBLE
+                    binding.visitButton.visibility = View.VISIBLE
+                    binding.searchSchoolButton.visibility = View.VISIBLE
 
                     // loadCentresButton.visibility = View.VISIBLE
                     getLastLocation()
@@ -143,11 +188,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        var url = "https://cork-86201-default-rtdb.europe-west1.firebasedatabase.app"
+        val url = "https://cork-86201-default-rtdb.europe-west1.firebasedatabase.app"
         database = FirebaseDatabase.getInstance(url)
 
-        visitButton.setOnClickListener {
-            var currentTime = java.util.Calendar.getInstance()
+        binding.visitButton.setOnClickListener {
+            val currentTime = java.util.Calendar.getInstance()
             centre.visitTime = currentTime.toString()
             centre.currentNIF = currentNIF
             database.getReference("centres").child(centre.Codi!!).setValue(centre)
@@ -168,7 +213,7 @@ class MainActivity : AppCompatActivity() {
             if (isLocationEnabled()) {
 
                 fusedLocationClient.lastLocation.addOnCompleteListener(this) { task ->
-                    var location: Location? = task.result
+                    val location: Location? = task.result
                     if (location == null) {
                         requestNewLocationData()
                     } else {
@@ -193,22 +238,23 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     private fun requestNewLocationData() {
-        var locationRequest = LocationRequest()
-        locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-        locationRequest.interval = 0
-        locationRequest.fastestInterval = 0
-        locationRequest.numUpdates = 1
+        val locationRequest = LocationRequest.create().apply {
+            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+            interval = 0
+            fastestInterval = 0
+            numUpdates = 1
+        }
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        fusedLocationClient!!.requestLocationUpdates(
-            locationRequest, locationCallback,
-            Looper.myLooper()
-        )
+        fusedLocationClient.requestLocationUpdates(
+            locationRequest,
+            locationCallback,
+            Looper.myLooper()!!)
     }
 
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult) {
-            var lastLocation: Location = locationResult.lastLocation
+            val lastLocation: Location = locationResult.lastLocation
             /*
             Toast.makeText(
                 this@MainActivity,
@@ -220,7 +266,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isLocationEnabled(): Boolean {
-        var locationManager: LocationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val locationManager: LocationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(
             LocationManager.NETWORK_PROVIDER
         )
@@ -245,12 +291,13 @@ class MainActivity : AppCompatActivity() {
         ActivityCompat.requestPermissions(
             this,
             arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION),
-            LOCATION_PERMISSION_ID
+            locationPermissionId
         )
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        if (requestCode == LOCATION_PERMISSION_ID) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == locationPermissionId) {
             if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
                 getLastLocation()
             }
@@ -258,7 +305,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun distance(lat1: Double, lon1: Double, lat2: Double, lon2: Double) : Double {
-        val radius = 6371e3; // metres
+        val radius = 6371e3 // metres
         val rlat1 = lat1 * PI / 180 // φ1
         val rlat2 = lat2 * PI / 180 // φ2
         val dlat = (lat2 - lat1) * PI / 180 // Δφ
@@ -267,9 +314,7 @@ class MainActivity : AppCompatActivity() {
         val a = sin(dlat/2).pow(2) + cos(rlat1) * cos(rlat2) * sin(dlon/2).pow(2)
         val c = 2 * atan2(sqrt(a), sqrt(1-a))
 
-        val dist = radius * c
-
-        return dist
+        return radius * c
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -336,7 +381,7 @@ class MainActivity : AppCompatActivity() {
         for (item in centres) {
             if (item.Coordenades_GEO_X != null &&
                 item.Coordenades_GEO_Y != null) {
-                    var dist = distance(
+                    val dist = distance(
                         latitude, longitude,
                         item.Coordenades_GEO_Y!!, item.Coordenades_GEO_X!!)
                 if (dist < mindist || mindist < 0) {
@@ -347,7 +392,7 @@ class MainActivity : AppCompatActivity() {
         }
         if (mindist >= 0) {
             centre = minitem
-            school.text = minitem.Nom + " (" + mindist.toInt() + "m)"
+            binding.school.text = minitem.Nom + " (" + mindist.toInt() + "m)"
             Toast.makeText(
                 this@MainActivity,
                 minitem.Nom,
