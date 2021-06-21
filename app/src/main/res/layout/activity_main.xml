@@ -27,12 +27,20 @@
         android:text="@string/identify" />
 
     <EditText
-        android:id="@+id/nif"
-        android:hint="@string/nif"
+        android:id="@+id/email"
+        android:hint="@string/email"
         android:layout_height="wrap_content"
-        android:layout_width="160dp"
-        android:inputType="numberDecimal"
-        android:autofillHints="username" />
+        android:layout_width="200dp"
+        android:inputType="textEmailAddress"
+        android:autofillHints="emailAddress" />
+
+    <EditText
+        android:id="@+id/password"
+        android:hint="@string/password"
+        android:layout_height="wrap_content"
+        android:layout_width="200dp"
+        android:inputType="textPassword"
+        android:autofillHints="password" />
 
     <Button
         android:id="@+id/loginButton"
