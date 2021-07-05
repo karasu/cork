@@ -201,11 +201,14 @@ class MainActivity : AppCompatActivity() {
         binding.loadCentresButton.visibility = View.INVISIBLE
         binding.searchSchoolButton.visibility = View.INVISIBLE
 
+
+
+
         val user = Firebase.auth.currentUser
         if (user != null) {
             // User is signed in
             // updateUI(user)
-            // Firebase.auth.signOut()
+            Firebase.auth.signOut()
         } else {
             // No user is signed in
         }
@@ -238,6 +241,7 @@ class MainActivity : AppCompatActivity() {
                 val myPassword : String = binding.password.text.toString()
 
                 signIn(myEmail, myPassword)
+
             }
         }
 
@@ -248,20 +252,16 @@ class MainActivity : AppCompatActivity() {
             val currentTime = java.util.Calendar.getInstance()
             centre.visitTime = currentTime.time.toString()
             centre.user = auth.currentUser!!.email.toString()
-
-            // database.getReference("centres").child(centre.Codi!!).setValue(centre)
-            val index = centre.user.indexOf('@')
-            val usuarip = centre.user.subSequence(0, index) as String
-            val usuari = usuarip.replace('.', '_')
-
-            database.getReference("alliberades").child(usuari).child(centre.visitTime).setValue(centre)
+            database.getReference("centres").child(centre.Codi!!).setValue(centre)
 
             Toast.makeText(
                 this@MainActivity,
                 "Centre " + centre.Nom + " marcat com a visitat!",
                 Toast.LENGTH_LONG).show()
         }
+
     }
+
 
     // ---------------------------------------------------------------------------------------------
 
